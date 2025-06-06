@@ -32,6 +32,16 @@ const userSchema = new mongoose.Schema(
         message: "Last name can only contain letters and spaces",
       },
     },
+    photoUrl: {
+      type: String,
+      default: "default-profile.jpg", // Default profile picture
+      validate: {
+        validator: function (value) {
+          return validator.isURL(value, { protocols: ["http", "https"] });
+        },
+        message: "Please provide a valid URL for the photo",
+      },
+    },
     emailid: {
       type: String,
       required: [true, "Email is required"],

@@ -16,6 +16,7 @@ router.get("/view", auth, (req, res) => {
       emailid: req.user.emailid,
       age: req.user.age,
       gender: req.user.gender,
+      photoUrl: req.user.photoUrl,
     },
   });
 });
@@ -51,6 +52,7 @@ router.patch("/edit", auth, async (req, res) => {
         emailid: user.emailid,
         age: user.age,
         gender: user.gender,
+        photoUrl: user.photoUrl,
       },
     });
   } catch (error) {

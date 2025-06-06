@@ -1,7 +1,13 @@
 const validator = require("validator");
 
 // Allowed fields for profile editing
-const ALLOWED_EDIT_FIELDS = ["firstname", "lastname", "age", "gender"];
+const ALLOWED_EDIT_FIELDS = [
+  "firstname",
+  "lastname",
+  "age",
+  "gender",
+  "photoUrl",
+];
 
 // Validation rules for each field
 const validationRules = {
@@ -29,6 +35,12 @@ const validationRules = {
     required: false,
     allowedValues: ["male", "female", "other"],
     message: "Gender must be either male, female, or other",
+  },
+  photoUrl: {
+    required: false,
+    validate: (value) =>
+      validator.isURL(value, { protocols: ["http", "https"] }),
+    message: "Please provide a valid URL for the photo",
   },
 };
 
@@ -99,6 +111,14 @@ const validateProfileEdit = (data) => {
             errors[field] = rules.message;
           } else {
             validatedData[field] = value.toLowerCase();
+          }
+          break;
+
+        case "photoUrl":
+          if (!rules.validate(value)) {
+            errors[field] = rules.message;
+          } else {
+            validatedData[field] = value;
           }
           break;
       }
