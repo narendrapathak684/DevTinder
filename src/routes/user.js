@@ -71,7 +71,8 @@ router.get("/connections", auth, async (req, res) => {
     // Format the response to include the other user's details
     const formattedConnections = acceptedConnections.map((connection) => {
       // Determine which user is the other user (not the current user)
-      const otherUser = connection.fromuserid._id.equals(currentUserId)
+      const otherUser =
+        connection.fromuserid._id.toString() === currentUserId.toString()
           ? connection.touserid
           : connection.fromuserid;
 
@@ -99,6 +100,75 @@ router.get("/connections", auth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Error fetching accepted connections",
+    });
+  }
+});
+
+// Get feed of users (excluding connected users and self)
+router.get("/feed", auth, async (req, res) => {
+  try {
+    const currentUserId = req.user._id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    // Find all users that the current user has any type of connection with
+    const connections = await ConnectionRequest.find({
+      $or: [{ fromuserid: currentUserId }, { touserid: currentUserId }],
+    });
+
+    // Create a set of user IDs to exclude (connected users + self)
+    const excludedUserIds = new Set([currentUserId.toString()]);
+    connections.forEach((connection) => {
+      excludedUserIds.add(connection.fromuserid.toString());
+      excludedUserIds.add(connection.touserid.toString());
+    });
+
+    // Get total count of available users
+    const totalUsers = await User.countDocuments({
+      _id: { $nin: Array.from(excludedUserIds) },
+    });
+
+    // Find users who are not in the excluded list with pagination
+    const feedUsers = await User.find({
+      _id: { $nin: Array.from(excludedUserIds) },
+    })
+      .select("firstname lastname age gender photoUrl")
+      .skip(skip)
+      .limit(limit);
+
+    // Format the response
+    const formattedFeed = feedUsers.map((user) => ({
+      userId: user._id,
+      firstName: user.firstname,
+      lastName: user.lastname,
+      age: user.age,
+      gender: user.gender,
+      photoUrl: user.photoUrl,
+    }));
+
+    // Calculate pagination metadata
+    const totalPages = Math.ceil(totalUsers / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    res.status(200).json({
+      success: true,
+      data: formattedFeed,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalUsers,
+        hasNextPage,
+        hasPrevPage,
+        usersPerPage: limit,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching feed:", error);
+    res.status(500).json({
+      success: false,
+      error: "Error fetching feed",
     });
   }
 });
